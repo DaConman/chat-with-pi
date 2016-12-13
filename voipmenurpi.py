@@ -8,28 +8,30 @@
 ##  positive integer identifier (free choice) if entry goes to submenu if selected OR
 ##  string with action to be returned when entry is selected]
 ##
-## Below MyMenu and MyMenu2 examples will result in same MENU !
-##
 
+import subprocess
+import shlex
 import lcd_api
 
+global isOpen
+
 VoipMenu =  [
-    [0,"Menu Top",1],
+    [0,"Top",1],
     
-    [1,"Password",2],
+    [1,"Pass",2],
     [1,"IP",3],
-    [1,"Make Call",4],
+    [1,"Call",4],
 
-    [2,"Set","set password"],
-    [2,"Clear","clear password"],
-    [2,"Exit", 0],
+    [2,"Set","setpassword"],
+    [2,"Show","showpassword"],
 
-    [3,"Show IP","exec Lampe ON"],
-    [3,"Exit", 0],
+    [3,"ShowMyIP","showmyIP"],
+    [3,"Enter IP", "entercallIP"],
+    [3,"ShowCallIP","showcallIP"],
 
-    [4,"Enter IP", "enter IP"],
-    [4,"Make Call","make call"],
-    [4,"Exit", 0]
+    [4,"MakeCall","call"],
+    [4,"EndCall","endcall"],
+    [4,"Wait", "wait"],
 
     ]
 
@@ -49,6 +51,7 @@ def getch():
     return ch
 
 
+
 class menu :
 
     """
@@ -57,7 +60,7 @@ class menu :
     [reference to parent entry identifier,
     menu entry display title, 
     positive integer identifier (free choice) if entry goes to submenu if selected OR
-    string with action to be returned when entry is selected]
+    string with action to be returned when entrny is selected]
     """
         
     def __init__(self,structure,ExitLabel = "EXIT"):
@@ -97,6 +100,7 @@ class menu :
         if pos is None : pos = self.key
         self.key = pos
         parent = self._menu[pos][1]
+        lcd_api.lcd_string(str(self.niveau)+":"+self._menu[parent][2]+" "+self._menu[pos][2], lcd_api.LCD_LINE_1)
         print str(self.niveau)+":"+self._menu[parent][2]
         print self._menu[pos][2]
 
@@ -166,20 +170,117 @@ class menu :
         self.key = self._menu[pos][1]
         self.niveau -=1
         return True
+
+def setPass():
+    import lcd_api
+    from constants import PASSOPTIONS
+    
+    ip = list('')
+    number = 0
+    number2 = 0
+    s1 = list (PASSOPTIONS)
+    notDone = True
+    while notDone:
+            
+        p = getch()
+        if p == 'n':
+            if number2 == len(s1)-1:
+                number2 = 0
+            else:
+                number2 += 1
+        elif p == 'b':
+            if number2 == 0:
+                number2 = len(s1)-1
+            else:
+                number2 -= 1
+        elif p =='s':
+            ip.append(s1[number2])
+            number += 1
+            number2 = 0
+            if number == 10:
+                break
+            
+        print ''.join(ip)+s1[number2]
+        lcd_api.lcd_string(''.join(ip)+s1[number2], lcd_api.LCD_LINE_2) 
+    
+    return ''.join(ip)
         
+def setIP():
+    import lcd_api
+    from constants import IPOPTION
+    
+    ip = list('')
+    number = 0
+    number2 = 0
+    threezeros = 0
+    s1 = list (IPOPTION)
+    notDone = True
+    while notDone:
+                
+        if number == 3:
+            ip.append('.')
+            number = number+1
+        if number == 7:
+            ip.append('.')
+            number = number+1
+        if number == 11:
+            ip.append('.')
+            number = number+1
+            
+        p = getch()
+        if p == 'n':
+            if number2 == 9:
+                number2 = 0
+            else:
+                number2 = number2+1
+        elif p == 'b':
+            if number2 == 0:
+                number2 = 9
+            else:
+                number2 = number2-1
+        elif p =='s':
+	    if s1[number2] != '0': 
+                ip.append(s1[number2])
+                threezeros = 0
+	    else:
+                threezeros += 1
+                if threezeros > 2:
+                    ip.append('0')
+                    threezeros = 0
+            number = number+1
+            number2 = 0
+            if number == 15:
+                break
+            
+        print ''.join(ip)+s1[number2]
+        lcd_api.lcd_string(''.join(ip)+s1[number2], lcd_api.LCD_LINE_2) 
+    
+    return ''.join(ip)
     
     
 if __name__ == "__main__":
 
     import lcd_api
+    import os, re
+    from constants import *
+    import md5
 
+    lcd_api.init()
     m=menu(VoipMenu)
+    secondline = ""
     action=""
+    password="";
+    extIP = "None";
+    call_address = '999.999.999.999'
+    isOpen = False
 
     while True:
-        #os.system("clear")
+        os.system("clear")
         m.display()
-        lcd_api.lcd_string(action, LCD_LINE_1)
+        
+	print secondline
+        print action
+        lcd_api.lcd_string(secondline, lcd_api.LCD_LINE_2)
         c=getch()
         if c == "x" : break
         if c == "n" : m.next()  # Simulate NEXT button
@@ -189,6 +290,47 @@ if __name__ == "__main__":
             if s :
                 if s == -1 : break
                 action=m.action()
-                m.up()
-
-                
+                if action == "call" or action == "wait":
+                    if isOpen is False:
+                        try:
+                            pid = subprocess.Popen(shlex.split(WAITOPTION), stdin=subprocess.PIPE,stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+                            x = 1
+                            while x < 8:
+                                secondline = pid.stdout.readline()
+                                x+=1
+                            Result = re.search('External IP: (\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})', secondline)
+                            if Result:
+                                extIP = Result.group(1)
+                            pid.stdin.write(b'/X 3\n')
+                            hshmd5 = md5.new(password).hexdigest()
+                            pid.stdin.write(b'/x %s\n'%hshmd5)
+                            pid.stdin.write(b'/e 2\n')
+			    if action == "call":
+			        pid.stdin.write(b'/c %s\n'%call_address)
+				secondline = "Calling"
+		            else:
+				secondline = "Waiting"
+                            isOpen = True
+                        except subprocess.CalledProcessError:
+                            secondline = 'Error'
+                    else:
+                        secondline = "Error!"
+                elif action == "setpassword":
+                    password = setPass()
+                elif action == "showpassword":
+                    action = password
+		    secondline = password
+                elif action == "showmyIP":
+                    action = extIP
+                    secondline = extIP
+                elif action == "showcallIP":
+                    action = call_address
+		    secondline = call_address
+                elif action == "entercallIP":
+                    call_address = setIP()
+                elif action == "endcall":
+                    if isOpen == True:
+			secondline = "Call Ended"
+                        action = pid.communicate("/q")[0]
+                        extIP = "None"
+                        isOpen = False

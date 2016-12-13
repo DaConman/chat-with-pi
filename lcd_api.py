@@ -48,33 +48,34 @@
 # 14: Data Bit 7
 # 15: LCD Backlight +5V**
 # 16: LCD Backlight GND
-
+def init():
 #import
-import RPi.GPIO as GPIO
-import time
+  global GPIO, time
+  import RPi.GPIO as GPIO
+  import time
 
 # Define GPIO to LCD mapping
-LCD_RS = 7
-LCD_E  = 8
-LCD_D4 = 25
-LCD_D5 = 24
-LCD_D6 = 23
-LCD_D7 = 18
+  global LCD_RS, LCD_E, LCD_D4, LCD_D5, LCD_D6, LCD_D7, LCD_WIDTH, LCD_CHR, LCD_CMD, LCD_LINE_1, LCD_LINE_2, E_PULSE, E_DELAY  
+  LCD_RS = 7
+  LCD_E  = 8
+  LCD_D4 = 25
+  LCD_D5 = 24
+  LCD_D6 = 23
+  LCD_D7 = 18
 
 
 # Define some device constants
-LCD_WIDTH = 16    # Maximum characters per line
-LCD_CHR = True
-LCD_CMD = False
+  LCD_WIDTH = 16    # Maximum characters per line
+  LCD_CHR = True
+  LCD_CMD = False
 
-LCD_LINE_1 = 0x80 # LCD RAM address for the 1st line
-LCD_LINE_2 = 0xC0 # LCD RAM address for the 2nd line
+  LCD_LINE_1 = 0x80 # LCD RAM address for the 1st line
+  LCD_LINE_2 = 0xC0 # LCD RAM address for the 2nd line
 
 # Timing constants
-E_PULSE = 0.0005
-E_DELAY = 0.0005
+  E_PULSE = 0.0005
+  E_DELAY = 0.0005
 
-def init():
   # Main program block
   
   GPIO.setwarnings(False)
@@ -90,7 +91,10 @@ def init():
   # Initialise display
   lcd_init()
 
-'''
+def main():
+
+  init()
+
   while True:
 
     # Send some test
@@ -117,8 +121,7 @@ def init():
     lcd_string("Follow me on",LCD_LINE_1)
     lcd_string("Twitter @RPiSpy",LCD_LINE_2)
 
-    time.sleep(6S)
-'''
+    time.sleep(6)
 
 def lcd_init():
   # Initialise display
