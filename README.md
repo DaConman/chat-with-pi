@@ -7,5 +7,5 @@ Steps for Use:
    run from any directory.  
 2. Pull these files to your local drive.  
 3. Move files to your Rasp Pi.  
-4. Move/Configure the voipstart.sh to be called on Rasp Pi startup. Look up ways to do this, as a multitude exist. Our method to place it in the bashrc file at the end.  
+4. Move/Configure the voipstart.sh to be called on Rasp Pi startup. Look up ways to do this, as a multitude exist. Our method to place it in the bashrc file at the end. One line needs to be updated to link to your voipmenurpi location.  
 5. Restart Pi and enjoy!
